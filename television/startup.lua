@@ -7,7 +7,6 @@ local maximum_control_distance = 40
 
 modem.open(modem_channels.c2s)
 
-peripheral.call("top", "clear", 1)
 local receieve_cancelled = false
 local play_cancelled = false
 local server = "wss://youcube.cdnbcn.net"
@@ -81,6 +80,8 @@ if not outputmonitor then
     error("You need a monitor in order to use YouCube!")
 end
 
+
+outputmonitor.clear()
 outputmonitor.setTextScale(0.5)
 outputmonitor.setCursorPos(0, 0)
 

@@ -18,6 +18,7 @@ In order to set this up ensure you have access to
 
 ### Television Setup
 1. Copy all files from television directory to the computer
+  - Optionally, change the variable `server` in startup.lua to point to a different [YouCube server](https://github.com/CC-YouCube/server)
 2. Attach a monitor and wireless modem
 3. Restart the computer
 ### Remote Setup
@@ -39,5 +40,8 @@ In order to set this up ensure you have access to
 - [Hot Pink](documentation/themes/hot_pink.png)
 - [Vaporwave](documentation/themes/vaporwave.png)
 - [Kiwi](documentation/themes/kiwi.png)
+
+## TODO
+- Create install scripts for both sides
 ---
 This project is licensed under the [GPL3.0 License](LICENSE)
