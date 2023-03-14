@@ -85,13 +85,18 @@ local function selectColorScheme(manual)
             if fs.exists("/preferred_theme") then
                 fs.delete("/preferred_theme")
             end
+            local color_scheme_names = {}
             print("Select a color scheme")
-            print("One of 'dracula' 'matte_blue' 'kiwi' 'vaporwave' 'hot_pink'")
+            write("One of")
+            for k, _ in pairs(color_schemes) do
+                table.insert(color_scheme_names, k)
+                write(" '"..k.."'")
+            end
+            print("")
             write("> ")
             repeat
                 selected = read(nil, nil,
-                    function(text) return completion.choice(text,
-                        { "matte_blue", "dracula", "kiwi", "vaporwave", "hot_pink" }) end)
+                    function(text) return completion.choice(text, color_scheme_names) end)
             until color_schemes[selected] ~= nil
             io.open("/preferred_theme", "w"):write(selected)
         end

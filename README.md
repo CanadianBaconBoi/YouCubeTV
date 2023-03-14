@@ -1,10 +1,43 @@
-# YouCube TV
-### Simple TV using a modified version of YouCube
+# [YouCube](https://youcube.madefor.cc/) TV for [CC:Tweaked](https://tweaked.cc/t)
 
-Most of the code for the TV is ripped out of the reference YouCube client
+This is a television in Minecraft based on the [YouCube](https://github.com/CC-Youcube/) project. It is very similar to the reference client built into YouCube however instead of acting as a CLI and displaying in the current terminal, it displays to an external display and uses a Wireless Pocket Computer as a remote in order to play content.
 
-All of the remote code is from scratch
+## Features
+- Playback of videos and playlists from Youtube
+- Playback of videos from some other [supported sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)
+- Remote control playback
+- UI TV Remote
 
-youcubeapi.lua has been modified to add support for external monitors
+## Setup
+In order to set this up ensure you have access to
+- 1x Advanced Computer
+- 1x Wireless/Ender Modem
+- 1x Wireless/Ender Pocket Computer
+- Some Advanced Monitors
+  - Note that this is only tested up to a 4x2 size
 
-Thank you [CommandCracker](https://github.com/Commandcracker) for your amazing work on [YouCube](https://github.com/CC-YouCube)
+### Television Setup
+1. Copy all files from television directory to the computer
+2. Attach a monitor and wireless modem
+3. Restart the computer
+### Remote Setup
+1. Copy all files from remote directory to the pocket computer
+2. Restart the pocket computer
+3. Select a theme
+4. Queue a track using the top search box
+
+## Screenshots
+### Main UI
+![TV Downloading](documentation/remote.png)
+### TV Screen (downloading)
+![TV Downloading](documentation/downloading.png)
+### TV Screen (playing)
+![TV Playing](documentation/playing.png)
+### Themes
+- [Dracula](documentation/themes/dracula.png)
+- [Matte Blue](documentation/themes/matte_vlue.png)
+- [Hot Pink](documentation/themes/hot_pink.png)
+- [Vaporwave](documentation/themes/vaporwave.png)
+- [Kiwi](documentation/themes/kiwi.png)
+---
+This project is licensed under the [GPL3.0 License](LICENSE)
