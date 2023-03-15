@@ -16,12 +16,16 @@ In order to set this up ensure you have access to
 - Some Advanced Monitors
   - Note that this is only tested up to a 4x2 size
 
-### Television Setup
+### Automatic Setup
+Simply run `wget run https://raw.githubusercontent.com/CanadianBaconBoi/YouCubeTV/master/setup.lua` and follow the instructions of the installer
+
+### Manual Setup
+#### Television Setup
 1. Copy all files from television directory to the computer
   - Optionally, change the variable `server` in startup.lua to point to a different [YouCube server](https://github.com/CC-YouCube/server)
 2. Attach a monitor and wireless modem
 3. Restart the computer
-### Remote Setup
+#### Remote Setup
 1. Copy all files from remote directory to the pocket computer
 2. Restart the pocket computer
 3. Select a theme
@@ -41,7 +45,5 @@ In order to set this up ensure you have access to
 - [Vaporwave](documentation/themes/vaporwave.png)
 - [Kiwi](documentation/themes/kiwi.png)
 
-## TODO
-- Create install scripts for both sides
 ---
 This project is licensed under the [GPL3.0 License](LICENSE)

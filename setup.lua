@@ -53,13 +53,81 @@ local settings = {
 }
 
 --#region Helper Functions
+function table.contains(table, element)
+    for _, value in pairs(table) do
+        if value == element then
+            return true
+        end
+    end
+    return false
+end
+
+local function try_convert(input, output_type)
+    local conversion_methods = {
+        number = function (input)
+            return tonumber(input)
+        end,
+        string = function (input)
+            return tostring(input)
+        end,
+        boolean = function (input)
+            if type(input) == "number" then
+                return input ~= 0
+            elseif type(input) == "string" then
+                if input == "true" or input == "1" then
+                    return true
+                elseif input == "false" or input == "0" then
+                    return false
+                else
+                    error("'"..input.."' is not a valid boolean value")
+                end
+            else
+                error("Type '"..type(input).."' cannot be converted to 'boolean'")
+            end
+        end
+    }
+    if output_type == "nil" then
+        return nil
+    elseif conversion_methods[output_type] then
+        return conversion_methods[output_type](input)
+    else
+        error("Conversion to '"..output_type.."' is not supported")
+    end
+end
+
+local function format_value(input)
+    local formatter_methods = {
+        number = function (input)
+            return tostring(input)
+        end,
+        string = function (input)
+            return "\""..input.."\""
+        end,
+        boolean = function (input)
+            if input then
+                return "true"
+            else
+                return "false"
+            end
+        end,
+    }
+    if type(input) == "nil" then
+        return nil
+    elseif formatter_methods[type(input)] then
+        return formatter_methods[type(input)](input)
+    else
+        error("No formatter for type '"..type(input).."'")
+    end
+
+end
+
 local function userPrompt(prompt_text, completions, validity_function)
     print(prompt_text)
 
     local selection
     if not validity_function then
         validity_function = function(text)
-            if completions[text] then
+            if table.contains(completions, text) then
                 return true
             else
                 return false
@@ -79,14 +147,28 @@ end
 
 local function setSetting(setting_data)
     if setting_data.prompt then
-        return userPrompt(setting_data.prompt .. " (default: " .. setting_data.default .. ")", { setting_data.default },
+        setting_data.value = try_convert(userPrompt(setting_data.prompt .. " (default: " .. setting_data.default .. ")", { tostring(setting_data.default) },
             function(text)
-                return type(text) == type(setting_data.default)
-            end)
+                return type(try_convert(text, type(setting_data.default))) == type(setting_data.default)
+            end), type(setting_data.default))
     else
-        for setting_name, data in pairs(setting_data) do
-            setSetting(setting_data)
+        for _, data in pairs(setting_data) do
+            setSetting(data)
         end
+    end
+end
+
+local function generateSettingsString(setting_name, data)
+    if data.prompt then
+        return  string.char(10) .. "  --" .. data.prompt .. string.char(10)
+        .. "  " .. setting_name .. " = " .. format_value(data.value) .. ","
+    else
+        local retval = string.char(10) .. setting_name .. " = {"
+        for setting_name, data in pairs(data) do
+            retval = retval .. generateSettingsString(setting_name, data)
+        end
+        retval = retval .. string.char(10) .. "},"
+        return retval
     end
 end
 
@@ -95,12 +177,12 @@ local function downloadFile(sUrl, outputPath)
 
     local ok, err = http.checkURL(sUrl)
     if not ok then
-        error("Failed to find file at '"..sUrl.."'.")
+        error("Failed to find file at '" .. sUrl .. "'.")
     end
 
     local response = http.get(sUrl, nil, true)
     if not response then
-        error("Failed to download file '"..outputPath.."'.")
+        error("Failed to download file '" .. outputPath .. "'.")
     end
 
     print("Downloaded file " .. outputPath .. "!")
@@ -122,37 +204,41 @@ github_base_url = github_base_url .. side .. "/"
 if fs.exists("/settings.lua") then
     fs.delete("/settings.lua")
 end
-local settings_file = io.open("/settings.lua", "w")
+local settings_file = fs.open("/settings.lua", "wb")
 local advanced = userPrompt("[Advanced Users] Modify Settings?", { "yes", "no" })
 if advanced == "yes" then
     for _, data in pairs(settings[side]) do
-        data.value = setSetting(data)
+        setSetting(data)
     end
 else
     for _, data in pairs(settings[side]) do
         data.value = data.default
     end
 end
+
 local settings_file_string = "return {"
 for setting_name, data in pairs(settings[side]) do
-    settings_file_string = settings_file_string .. string.char(10)
-        .. "  --" .. data.prompt .. string.char(10)
-        .. "  " .. setting_name .. " = " .. data.value
+    settings_file_string = settings_file_string .. generateSettingsString(setting_name, data)
 end
 settings_file_string = settings_file_string .. string.char(10) .. "}"
+
+print(settings_file_string)
+os.pullEvent("key")
+
+settings_file.write(settings_file_string)
+settings_file.close()
 --#endregion
 
 --#region Download
 for _, value in pairs(files[side]) do
     if fs.exists(value) then
         local overwrite = userPrompt("File '" .. value .. "' already exists, would you like to overwrite? [y/n]",
-        { "y", "n" })
+            { "y", "n" })
         if overwrite == "y" then
             fs.delete(value)
         else
             error("User did not agree to overwrite file '" .. value "'")
         end
-        return
     end
 end
 
