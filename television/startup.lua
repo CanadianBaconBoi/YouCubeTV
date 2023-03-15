@@ -11,7 +11,7 @@ modem.open(modem_channels.c2s)
 
 local receieve_cancelled = false
 local play_cancelled = false
-local server = settings.server or "wss://youcube.cdnbcn.net"
+local server = settings.server or "wss://youcube.knijn.one"
 local queries = {}
 local _query = ""
 local control_message = nil
