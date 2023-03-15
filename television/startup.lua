@@ -1,25 +1,28 @@
+local settings = require("settings")
+
 local modem = peripheral.find("modem") or error("No modem attached", 0)
 local modem_channels = {
-    c2s = 35284,
-    s2c = 35285
+    c2s = settings.channels.c2s or 35284,
+    s2c = settings.channels.s2c or 35285
 }
-local maximum_control_distance = 40
+local maximum_control_distance = settings.maximum_control_distance or 40
 
 modem.open(modem_channels.c2s)
 
 local receieve_cancelled = false
 local play_cancelled = false
-local server = "wss://youcube.cdnbcn.net"
+local server = settings.server or "wss://youcube.cdnbcn.net"
 local queries = {}
 local _query = ""
 local control_message = nil
 local control_table = { pause = false }
-local audiovolume = 100
+local audiovolume = settings.default_volume or 100
+local playback_buffer_size = settings.playback_buffer_size or 60
 local nowplaying = {}
 
 -- #region playback controll vars
 local back_buffer = {}
-local max_back = 32
+local max_back = settings.max_back or 32
 local queue = {}
 local restart = falsecontrol
 -- #endregion
@@ -315,7 +318,7 @@ local function play(url)
         --[[
             Most videos run on 30 fps, so we store 2s of video.
         ]]
-        60
+        playback_buffer_size
     )
 
     local audio_buffer = libs.youcubeapi.Buffer.new(
