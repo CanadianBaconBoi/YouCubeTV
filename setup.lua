@@ -145,15 +145,19 @@ local function userPrompt(prompt_text, completions, validity_function)
     end
 end
 
-local function setSetting(setting_data)
+local function setSetting(setting_data, default)
     if setting_data.prompt then
-        setting_data.value = try_convert(userPrompt(setting_data.prompt .. " (default: " .. setting_data.default .. ")", { tostring(setting_data.default) },
-            function(text)
-                return type(try_convert(text, type(setting_data.default))) == type(setting_data.default)
-            end), type(setting_data.default))
+        if default == true then
+            setting_data.value = setting_data.default
+        else
+            setting_data.value = try_convert(userPrompt(setting_data.prompt .. " (default: " .. setting_data.default .. ")", { tostring(setting_data.default) },
+                function(text)
+                    return type(try_convert(text, type(setting_data.default))) == type(setting_data.default)
+                end), type(setting_data.default))
+        end
     else
         for _, data in pairs(setting_data) do
-            setSetting(data)
+            setSetting(data, default)
         end
     end
 end
@@ -205,15 +209,10 @@ if fs.exists("/settings.lua") then
     fs.delete("/settings.lua")
 end
 local settings_file = fs.open("/settings.lua", "wb")
-local advanced = userPrompt("[Advanced Users] Modify Settings?", { "yes", "no" })
-if advanced == "yes" then
-    for _, data in pairs(settings[side]) do
-        setSetting(data)
-    end
-else
-    for _, data in pairs(settings[side]) do
-        data.value = data.default
-    end
+local default_settings = userPrompt("[Advanced Users] Modify Settings?", { "yes", "no" }) == "no"
+
+for _, data in pairs(settings[side]) do
+    setSetting(data, default_settings)
 end
 
 local settings_file_string = "return {"
@@ -221,9 +220,6 @@ for setting_name, data in pairs(settings[side]) do
     settings_file_string = settings_file_string .. generateSettingsString(setting_name, data)
 end
 settings_file_string = settings_file_string .. string.char(10) .. "}"
-
-print(settings_file_string)
-os.pullEvent("key")
 
 settings_file.write(settings_file_string)
 settings_file.close()
