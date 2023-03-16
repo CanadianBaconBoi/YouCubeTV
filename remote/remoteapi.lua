@@ -3,7 +3,6 @@ local modem_channels = {
     c2s = 35284,
     s2c = 35285
 }
-local maximum_control_distance = 40
 --[[
     Packet format
     {
@@ -14,6 +13,9 @@ local maximum_control_distance = 40
         }
     }
 --]]
+
+local established = false
+
 local Packet = {
     protocol = "",
     payload = {
@@ -52,58 +54,95 @@ function Packet:send (channel, replyChannel)
     end
 end
 
+local function connectionWatchdog()
+    local event, side, channel, replyChannel, message, distance
+    local pingTimer
+    while true do
+        pingTimer = os.startTimer(1)
+        parallel.waitForAny(
+            function ()
+                modem.transmit(modem_channels.c2s, modem_channels.s2c, {protocol = "ping", payload = {message = "ping", data = 1}})
+                while true do
+                    event, side, channel, replyChannel, message, distance = os.pullEvent("modem_message")
+                    if message and message.protocol and message.protocol == "ping" and channel == modem_channels.s2c then
+                        established = true
+                        break
+                    else
+                        os.queueEvent(event, side, channel, replyChannel, message, distance)
+                    end
+                end
+            end,
+            function ()
+                local timer
+                repeat
+                    _, timer = os.pullEvent("timer")
+                until timer == pingTimer
+
+                established = false
+            end
+        )
+        os.cancelTimer(pingTimer)
+        os.sleep(1)
+    end
+end
+
 local function initialize()
+    term.clear()
+    local sX, sY = term.getSize()
+    term.setCursorPos((sX/2)-10, (sY/2))
+    write("Initializing Network")
     modem = peripheral.find("modem") or error("No modem attached", 0)
     modem.open(modem_channels.s2c)
-
-    local channel, message
-    local pingTimer
-    repeat
-        pingTimer = os.startTimer(1)
-        modem.transmit(modem_channels.c2s, modem_channels.s2c, {protocol = "ping", payload = {message = "ping", data = 1}})
-        _, _, channel, _, message = os.pullEvent("modem_message")
-    until message and message.protocol and message.protocol == "ping" and channel == modem_channels.s2c
-    os.cancelTimer(pingTimer)
+    
+    parallel.waitForAny(function ()
+        repeat
+            os.sleep(0)
+        until established == true
+    end,
+    connectionWatchdog)
 end
 
-local function sendPacket(protocol, payload)
+local function sendPacket(protocol, payload_message, payload_data)
     local packet = Packet:new()
     packet:setProtocol(protocol)
-    packet:setPayload(payload)
-    packet:send(modem_channels.c2s, modem_channels.s2c)
-end
-
-local function sendRequest(request)
-    local packet = Packet:new()
-    packet:setProtocol("request")
-    packet:setPayload("single", request)
-    packet:send(modem_channels.c2s, modem_channels.s2c)
-end
-
-local function sendControl(control, data)
-    local packet = Packet:new()
-    packet:setProtocol("control")
-    packet:setPayload(control, data)
+    packet:setPayload(payload_message, payload_data)
     packet:send(modem_channels.c2s, modem_channels.s2c)
 end
 
 local function requestInfo(control, data)
-    local packet = Packet:new()
-    packet:setProtocol("info")
-    packet:setPayload(control, data)
-    packet:send(modem_channels.c2s, modem_channels.s2c)
+    if not established then
+        return nil
+    end
 
-    local channel, replyChannel, message, distance
-    repeat
-        _, _, channel, replyChannel, message, distance = os.pullEvent("modem_message")
-    until channel == modem_channels.s2c
+    sendPacket("info", control, data)
+
+    local channel, message
+    parallel.waitForAny(
+        function ()
+            repeat
+                _, _, channel, _, message, _ = os.pullEvent("modem_message")
+            until channel == modem_channels.s2c and type(message.protocol) == "string" and message.protocol == "info_response"
+        end,
+        function ()
+            repeat
+                os.sleep(0)
+            until not established
+        end
+    )
     return message
 end
 
-
 return {
     initialize = initialize,
-    sendRequest = sendRequest,
-    sendControl = sendControl,
-    requestInfo = requestInfo
+    sendRequest = function (request)
+        sendPacket("request", "single", request)
+    end,
+    sendControl = function (control, data)
+        sendPacket("control", control, data)
+    end,
+    requestInfo = requestInfo,
+    connectionWatchdog = connectionWatchdog,
+    isEstablished = function ()
+        return established
+    end
 }

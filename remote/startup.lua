@@ -131,20 +131,46 @@ local text_boxes = {}
 local buttons = {}
 
 local function updateQueue()
-    local current_queue = remoteapi.requestInfo("queue").payload.data
-    for i = 1, 4, 1 do
-        text_boxes["queue_" .. i].content = current_queue[i + 1] or ""
+    local message
+    if remoteapi.isEstablished() then
+        message = remoteapi.requestInfo("queue")
+    end
+    if message then
+        local current_queue = message.payload.data
+        for i = 1, 4, 1 do
+            text_boxes["queue_" .. i].content = current_queue[i + 1] or ""
+        end
     end
 end
 
 local function updateNowPlaying()
-    local current_track = remoteapi.requestInfo("nowplaying").payload.data
+    local message
+    if remoteapi.isEstablished() then
+        message = remoteapi.requestInfo("nowplaying")
+    end
+    if message then
+        local current_track = message.payload.data
         text_boxes["now_playing"].content = current_track and (current_track.title or "Nothing Playing") or "Nothing Playing"
+    end
 end
 
 local function updateVolume()
-    local current_volume = remoteapi.requestInfo("volume").payload.data
-    text_boxes["volume"].content = tostring(current_volume)
+    local message
+    if remoteapi.isEstablished() then
+        message = remoteapi.requestInfo("volume")
+    end
+    if message then
+        local current_volume = message.payload.data
+        text_boxes["volume"].content = tostring(current_volume)
+    end
+end
+
+local function updateStatus()
+    if remoteapi.isEstablished() then
+        text_boxes["status_indicator"].color = colors.green
+    else
+        text_boxes["status_indicator"].color = colors.red
+    end
 end
 
 text_boxes = {
@@ -207,6 +233,15 @@ text_boxes = {
         y2 = 19,
         content = "Queue 4",
         color = color_scheme_map[button_colors.hover_color],
+    },
+    status_indicator = {
+        x1 = 13,
+        y1 = 20,
+        x2 = 14,
+        y2 = 20,
+        content = "",
+        color = colors.red,
+        update = updateStatus
     }
 }
 
@@ -257,11 +292,16 @@ buttons = {
         --        text_direction = "vertical",
         color = color_scheme_map[button_colors.color],
         action = function()
-            local message = remoteapi.requestInfo("volume")
-            if message.payload.data + 5 <= 100 then
-                remoteapi.sendControl("volume", message.payload.data + 5)
-            else
-                remoteapi.sendControl("volume", 100)
+            local message
+            if remoteapi.isEstablished() then
+                message = remoteapi.requestInfo("volume")
+            end
+            if message then
+                if message.payload.data + 5 <= 100 then
+                    remoteapi.sendControl("volume", message.payload.data + 5)
+                else
+                    remoteapi.sendControl("volume", 100)
+                end
             end
         end
     },
@@ -274,11 +314,16 @@ buttons = {
         --        text_direction = "vertical",
         color = color_scheme_map[button_colors.color],
         action = function()
-            local message = remoteapi.requestInfo("volume")
-            if message.payload.data - 5 >= 0 then
-                remoteapi.sendControl("volume", message.payload.data - 5)
-            else
-                remoteapi.sendControl("volume", 0)
+            local message
+            if remoteapi.isEstablished() then
+                message = remoteapi.requestInfo("volume")
+            end
+            if message then
+                if message.payload.data - 5 >= 0 then
+                    remoteapi.sendControl("volume", message.payload.data - 5)
+                else
+                    remoteapi.sendControl("volume", 0)
+                end
             end
         end
     },
@@ -475,5 +520,6 @@ parallel.waitForAny(function()
             os.queueEvent("update_ui")
             os.sleep(3)
         end
-    end
+    end,
+    remoteapi.connectionWatchdog
 )
