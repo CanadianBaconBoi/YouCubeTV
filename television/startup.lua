@@ -84,9 +84,11 @@ if not outputmonitor then
 end
 
 
-outputmonitor.clear()
 outputmonitor.setTextScale(0.5)
-outputmonitor.setCursorPos(0, 0)
+outputmonitor.setCursorPos(1, 1)
+outputmonitor.clear()
+term.setCursorPos(1, 1)
+term.clear()
 
 local audiodevices = {}
 
@@ -118,88 +120,131 @@ local function shallow_copy(t)
     return t2
 end
 
+--[[
+    Packet format
+    {
+        protocol = string,
+        payload = table {
+            message = string,
+            data = any|nil
+        }
+    }
+--]]
+local protocol_handlers = {
+    request = {
+        handler = function(payload)
+            if payload.message == "single" and type(payload.data) == "string" and payload.data ~= "" then
+                print("Received message " .. payload.data)
+                table.insert(queries, payload.data)
+            elseif payload.message == "multiple" and type(payload.data) == "table" then
+                for _, request in pairs(payload.data) do
+                    print("Received request " .. request)
+                    table.insert(queries, request)
+                end
+            end
+        end
+    },
+    ping = {
+        handlers = {
+            ping = function (payload_data)
+                if type(payload_data) == "number" then
+                    modem.transmit(modem_channels.s2c, modem_channels.c2s,
+                    { protocol = "ping", payload = { message = "pong", data = payload_data } })
+                end
+            end
+        }
+    },
+    control = {
+        handler = function(payload)
+            if type(payload.message) == "string" then
+                control_message = payload.message
+            end
+        end,
+        handlers = { -- payload.message
+            restart = function(payload_data)
+                os.reboot()
+            end,
+            stop = function(payload_data)
+                os.shutdown()
+            end,
+            pause = function(payload_data)
+                control_table["pause"] = true
+            end,
+            resume = function(payload_data)
+                control_table["pause"] = false
+                os.queueEvent("resumeVideo")
+                os.queueEvent("resumeAudio")
+            end,
+            volume = function(payload_data)
+                if type(payload_data) == "number" then
+                    audiovolume = payload_data
+                    for _, audiodevice in pairs(valid_audiodevices) do
+                        audiodevice:reset()
+                        audiodevice:setVolume(audiovolume)
+                    end
+                end
+            end
+        }
+    },
+    info = {
+        handlers = { -- payload.message
+            queue = function(payload_data)
+                local retval = {}
+                if nowplaying and nowplaying["title"] and nowplaying["title"] ~= "" then
+                    table.insert(retval, nowplaying["title"])
+                elseif _query and _query ~= "" then
+                    table.insert(retval, _query)
+                end
+                if queue and next(queue) then
+                    for _, v in ipairs(queue) do
+                        table.insert(retval, v)
+                    end
+                end
+                if queue and next(queries) then
+                    for _, v in ipairs(queries) do
+                        table.insert(retval, v)
+                    end
+                end
+                modem.transmit(modem_channels.s2c, modem_channels.c2s, {
+                    protocol = "info_response",
+                    payload = {
+                        message = "queue",
+                        data = retval
+                    }
+                })
+            end,
+            volume = function(payload_data)
+                modem.transmit(modem_channels.s2c, modem_channels.c2s, {
+                    protocol = "info_response",
+                    payload = {
+                        message = "volume",
+                        data = audiovolume
+                    }
+                })
+            end,
+            nowplaying = function(payload_data)
+                modem.transmit(modem_channels.s2c, modem_channels.c2s, {
+                    protocol = "info_response",
+                    payload = {
+                        message = "nowplaying",
+                        data = nowplaying
+                    }
+                })
+            end
+        }
+    }
+}
+
 local function do_receive()
     while receieve_cancelled == false do
         local _, _, channel, replyChannel, message, distance = os.pullEvent("modem_message")
-        if distance <= maximum_control_distance and type(message.protocol) == "string" and message.payload then
-            if message.protocol == "request" then
-                if type(message.payload) == "string" then
-                    if message.payload ~= "" then
-                        print("Received message " .. message.payload)
-                        table.insert(queries, message.payload)
-                    end
-                elseif type(message.payload) == "table" then
-                    if message.payload.type and message.payload.type == "request" then
-                        for _, request in pairs(message.payload.payload) do
-                            print("Received request " .. request)
-                            table.insert(queries, request)
-                        end
-                    end
-                end
-            elseif message.protocol == "ping" then
-                modem.transmit(modem_channels.s2c, modem_channels.c2s, {protocol = "pong", payload = nil})
-            elseif type(message.payload) == "string" then
-                if message.protocol == "control" then
-                    if message.payload == "restart" then
-                        os.reboot()
-                    elseif message.payload == "stop" then
-                        os.shutdown()
-                    elseif message.payload == "pause" then
-                        control_table["pause"] = true
-                    elseif message.payload == "resume" then
-                        control_table["pause"] = false
-                        os.queueEvent("resumeVideo")
-                        os.queueEvent("resumeAudio")
-                    elseif string.sub(message.payload, 1, 6) == "volume" then
-                        audiovolume = tonumber(string.sub(message.payload, 7, string.len(message.payload)))
-                        for _, audiodevice in pairs(valid_audiodevices) do
-                            audiodevice:reset()
-                            audiodevice:setVolume(audiovolume)
-                        end
-                    elseif message.payload ~= "" then
-                        control_message = message.payload
-                    end
-                elseif message.protocol == "info" then
-                    local packet = {
-                        protocol = "info_response",
-                        payload = nil
-                    }
-                    if message.payload == "queue" then
-                        local retval = {}
-                        if nowplaying and nowplaying["title"] and nowplaying["title"] ~= "" then
-                            table.insert(retval, nowplaying["title"])
-                        elseif _query and _query ~= "" then
-                            table.insert(retval, _query)
-                        end
-                        if queue and next(queue) then
-                            for _, v in ipairs(queue) do
-                                table.insert(retval, v)
-                            end
-                        end
-                        if queue and next(queries) then
-                            for _, v in ipairs(queries) do
-                                table.insert(retval, v)
-                            end
-                        end
-                        packet.payload = {
-                            type = "queue",
-                            payload = retval
-                        }
-                        modem.transmit(modem_channels.s2c, modem_channels.c2s, packet)
-                    elseif message.payload == "volume" then
-                        packet.payload = {
-                            type = "volume",
-                            payload = audiovolume
-                        }
-                        modem.transmit(modem_channels.s2c, modem_channels.c2s, packet)
-                    elseif message.payload == "nowplaying" then
-                        packet.payload = {
-                            type = "nowplaying",
-                            payload = nowplaying
-                        }
-                        modem.transmit(modem_channels.s2c, modem_channels.c2s, packet)
-                    end
-                end
+        if distance <= maximum_control_distance and type(message.protocol) == "string" and protocol_handlers[message.protocol] and type(message.payload) == "table" and type(message.payload.message) == "string" then
+            local protocol_handler = protocol_handlers[message.protocol]
+            if protocol_handler.handlers and protocol_handler.handlers[message.payload.message] then
+                local message_handler = protocol_handler.handlers[message.payload.message]
+                message_handler(message.payload.data)
+            elseif protocol_handler.handler then
+                protocol_handler.handler(message.payload)
             end
         end
     end
@@ -263,24 +308,24 @@ local function play(url)
     youcubeapi:request_media(url, outputmonitor.getSize())
 
     local data
-    local x, y = outputmonitor.getCursorPos()
+    local x, y = term.getCursorPos()
+    local mX, mY = outputmonitor.getCursorPos()
 
     repeat
         data = youcubeapi:receive()
         if data.action == "status" then
             term.setCursorPos(x, y)
+            outputmonitor.setCursorPos(mX, mY)
             term.clearLine()
-            term.write("Status: ")
-            term.setTextColor(colors.green)
-            os.queueEvent("youcube:status", data)
-            term.write(data.message)
-            term.setTextColor(colors.white)
-            outputmonitor.setCursorPos(x, y)
             outputmonitor.clearLine()
+            term.write("Status: ")
             outputmonitor.write("Status: ")
+            term.setTextColor(colors.green)
             outputmonitor.setTextColor(colors.green)
             os.queueEvent("youcube:status", data)
+            term.write(data.message)
             outputmonitor.write(data.message)
+            term.setTextColor(colors.white)
             outputmonitor.setTextColor(colors.white)
         else
             print()
@@ -380,7 +425,7 @@ local function play(url)
                         break
                     elseif control_message == "replay" then
                         if queue and next(queue) then
-                            table.insert(queue, 1, url) --add the current song to upcoming
+                            table.insert(queue, 1, url)   --add the current song to upcoming
                         else
                             table.insert(queries, 1, url) --add the current song to upcoming
                         end

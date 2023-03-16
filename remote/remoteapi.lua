@@ -4,10 +4,22 @@ local modem_channels = {
     s2c = 35285
 }
 local maximum_control_distance = 40
-
+--[[
+    Packet format
+    {
+        protocol = string,
+        payload = {
+            message = string,
+            data = any|nil
+        }
+    }
+--]]
 local Packet = {
     protocol = "",
-    payload = nil
+    payload = {
+        message = "",
+        data = nil
+    }
 }
 function Packet:new (o)
     o = o or {}
@@ -22,16 +34,19 @@ function Packet:setProtocol (proto)
     end
 end
 
-function Packet:setPayload (payload)
-    if type(payload) == "string" or type(payload) == "table" then
-        self.payload = payload
+function Packet:setPayload (message, data)
+    if type(message) == "string" then
+        self.payload = {
+            message = message,
+            data = data
+        }
     end
 end
 
 function Packet:send (channel, replyChannel)
     if type(self.protocol == "string") then
-        if type(self.payload) == "string"
-        or (type(self.payload) == "table" and type(self.payload.type) == "string") then
+        if type(self.payload) == "table"
+        or (type(self.payload) == "table" and type(self.payload.message) == "string") then
             modem.transmit(channel, replyChannel, self)
         end
     end
@@ -45,9 +60,9 @@ local function initialize()
     local pingTimer
     repeat
         pingTimer = os.startTimer(1)
-        modem.transmit(modem_channels.c2s, modem_channels.s2c, {protocol = "ping", payload = 1})
-        _, _, channel, _, message = os.pullEvent()
-    until message and message.protocol and message.protocol == "pong" and channel == modem_channels.s2c
+        modem.transmit(modem_channels.c2s, modem_channels.s2c, {protocol = "ping", payload = {message = "ping", data = 1}})
+        _, _, channel, _, message = os.pullEvent("modem_message")
+    until message and message.protocol and message.protocol == "ping" and channel == modem_channels.s2c
     os.cancelTimer(pingTimer)
 end
 
@@ -61,21 +76,21 @@ end
 local function sendRequest(request)
     local packet = Packet:new()
     packet:setProtocol("request")
-    packet:setPayload(request)
+    packet:setPayload("single", request)
     packet:send(modem_channels.c2s, modem_channels.s2c)
 end
 
-local function sendControl(control)
+local function sendControl(control, data)
     local packet = Packet:new()
     packet:setProtocol("control")
-    packet:setPayload(control)
+    packet:setPayload(control, data)
     packet:send(modem_channels.c2s, modem_channels.s2c)
 end
 
-local function requestInfo(control)
+local function requestInfo(control, data)
     local packet = Packet:new()
     packet:setProtocol("info")
-    packet:setPayload(control)
+    packet:setPayload(control, data)
     packet:send(modem_channels.c2s, modem_channels.s2c)
 
     local channel, replyChannel, message, distance

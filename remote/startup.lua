@@ -131,19 +131,19 @@ local text_boxes = {}
 local buttons = {}
 
 local function updateQueue()
-    local current_queue = remoteapi.requestInfo("queue").payload.payload
+    local current_queue = remoteapi.requestInfo("queue").payload.data
     for i = 1, 4, 1 do
         text_boxes["queue_" .. i].content = current_queue[i + 1] or ""
     end
 end
 
 local function updateNowPlaying()
-    local current_track = remoteapi.requestInfo("nowplaying").payload.payload
-    text_boxes["now_playing"].content = current_track.title or "Nothing Playing"
+    local current_track = remoteapi.requestInfo("nowplaying").payload.data
+        text_boxes["now_playing"].content = current_track and (current_track.title or "Nothing Playing") or "Nothing Playing"
 end
 
 local function updateVolume()
-    local current_volume = remoteapi.requestInfo("volume").payload.payload
+    local current_volume = remoteapi.requestInfo("volume").payload.data
     text_boxes["volume"].content = tostring(current_volume)
 end
 
@@ -258,10 +258,10 @@ buttons = {
         color = color_scheme_map[button_colors.color],
         action = function()
             local message = remoteapi.requestInfo("volume")
-            if message.payload.payload + 5 <= 100 then
-                remoteapi.sendControl("volume" .. (message.payload.payload + 5))
+            if message.payload.data + 5 <= 100 then
+                remoteapi.sendControl("volume", message.payload.data + 5)
             else
-                remoteapi.sendControl("volume100")
+                remoteapi.sendControl("volume", 100)
             end
         end
     },
@@ -275,10 +275,10 @@ buttons = {
         color = color_scheme_map[button_colors.color],
         action = function()
             local message = remoteapi.requestInfo("volume")
-            if message.payload.payload - 5 >= 0 then
-                remoteapi.sendControl("volume" .. (message.payload.payload - 5))
+            if message.payload.data - 5 >= 0 then
+                remoteapi.sendControl("volume", message.payload.data - 5)
             else
-                remoteapi.sendControl("volume0")
+                remoteapi.sendControl("volume", 0)
             end
         end
     },
