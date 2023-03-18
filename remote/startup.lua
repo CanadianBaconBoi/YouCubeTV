@@ -51,7 +51,9 @@ local color_scheme_map = {
     primary_text = colors.white,
     secondary_text = colors.gray,
     tertiary_text = colors.purple,
-    features = colors.cyan
+    features = colors.cyan,
+    enabled = colors.green,
+    disabled = colors.red
 }
 
 local choosing_theme = false
@@ -120,9 +122,9 @@ remoteapi.initialize()
 selectColorScheme()
 
 local button_colors = {
-    color = "features",
-    hover_color = "tertiary_text",
-    click_color = "primary_text"
+    color = color_scheme_map.features,
+    hover_color = color_scheme_map.tertiary_text,
+    click_color = color_scheme_map.primary_text
 }
 
 local focus_search = true
@@ -167,9 +169,9 @@ end
 
 local function updateStatus()
     if remoteapi.isEstablished() then
-        text_boxes["status_indicator"].color = colors.green
+        text_boxes["status_indicator"].color = color_scheme_map.enabled
     else
-        text_boxes["status_indicator"].color = colors.red
+        text_boxes["status_indicator"].color = color_scheme_map.disabled
     end
 end
 
@@ -180,7 +182,7 @@ text_boxes = {
         x2 = 25,
         y2 = 2,
         overflow = true,
-        color = color_scheme_map[button_colors.hover_color],
+        color = button_colors.click_color,
         content = ""
     },
     now_playing = {
@@ -189,7 +191,7 @@ text_boxes = {
         x2 = 25,
         y2 = 14,
         content = "Now Playing",
-        color = color_scheme_map[button_colors.hover_color],
+        color = button_colors.hover_color,
         update = updateNowPlaying
     },
     volume = {
@@ -198,7 +200,7 @@ text_boxes = {
         x2 = 26,
         y2 = 8,
         content = "100",
-        color = color_scheme_map[button_colors.hover_color],
+        color = button_colors.hover_color,
         update = updateVolume
     },
     queue_1 = {
@@ -207,7 +209,7 @@ text_boxes = {
         x2 = 25,
         y2 = 16,
         content = "Queue 1",
-        color = color_scheme_map[button_colors.hover_color],
+        color = button_colors.hover_color,
         update = updateQueue
     },
     queue_2 = {
@@ -216,7 +218,7 @@ text_boxes = {
         x2 = 25,
         y2 = 17,
         content = "Queue 2",
-        color = color_scheme_map[button_colors.hover_color],
+        color = button_colors.hover_color,
     },
     queue_3 = {
         x1 = 2,
@@ -224,7 +226,7 @@ text_boxes = {
         x2 = 25,
         y2 = 18,
         content = "Queue 3",
-        color = color_scheme_map[button_colors.hover_color],
+        color = button_colors.hover_color,
     },
     queue_4 = {
         x1 = 2,
@@ -232,7 +234,7 @@ text_boxes = {
         x2 = 25,
         y2 = 19,
         content = "Queue 4",
-        color = color_scheme_map[button_colors.hover_color],
+        color = button_colors.hover_color,
     },
     status_indicator = {
         x1 = 13,
@@ -240,7 +242,7 @@ text_boxes = {
         x2 = 14,
         y2 = 20,
         content = "",
-        color = colors.red,
+        color = color_scheme_map.disabled,
         update = updateStatus
     }
 }
@@ -253,7 +255,7 @@ buttons = {
         y2 = 7,
         content = "Rply",
         text_direction = "vertical",
-        color = color_scheme_map[button_colors.color],
+        color = button_colors.color,
         action = function()
             remoteapi.sendControl("replay")
         end
@@ -265,7 +267,7 @@ buttons = {
         y2 = 12,
         content = "Rset",
         text_direction = "vertical",
-        color = color_scheme_map[button_colors.color],
+        color = button_colors.color,
         action = function()
             remoteapi.sendControl("restart")
             print("rebooting")
@@ -278,7 +280,7 @@ buttons = {
         x2 = 1,
         y2 = 20,
         content = "X",
-        color = color_scheme_map[button_colors.color],
+        color = button_colors.color,
         action = function()
             os.queueEvent("exitRemote")
         end
@@ -290,7 +292,7 @@ buttons = {
         y2 = 7,
         content = "V+",
         --        text_direction = "vertical",
-        color = color_scheme_map[button_colors.color],
+        color = button_colors.color,
         action = function()
             local message
             if remoteapi.isEstablished() then
@@ -312,7 +314,7 @@ buttons = {
         y2 = 12,
         content = "V-",
         --        text_direction = "vertical",
-        color = color_scheme_map[button_colors.color],
+        color = button_colors.color,
         action = function()
             local message
             if remoteapi.isEstablished() then
@@ -333,7 +335,7 @@ buttons = {
         x2 = 26,
         y2 = 20,
         content = "T",
-        color = color_scheme_map[button_colors.color],
+        color = button_colors.color,
         action = function() selectColorScheme(true) end
     },
     {
@@ -342,7 +344,7 @@ buttons = {
         x2 = 15,
         y2 = 7,
         content = "Resme",
-        color = color_scheme_map[button_colors.color],
+        color = button_colors.color,
         action = function()
             remoteapi.sendControl("resume")
         end
@@ -353,7 +355,7 @@ buttons = {
         x2 = 15,
         y2 = 11,
         content = "Pause",
-        color = color_scheme_map[button_colors.color],
+        color = button_colors.color,
         action = function()
             remoteapi.sendControl("pause")
         end
@@ -364,7 +366,7 @@ buttons = {
         x2 = 8,
         y2 = 9,
         content = "<",
-        color = color_scheme_map[button_colors.color],
+        color = button_colors.color,
         action = function()
             remoteapi.sendControl("previous")
         end
@@ -375,7 +377,7 @@ buttons = {
         x2 = 20,
         y2 = 9,
         content = ">",
-        color = color_scheme_map[button_colors.color],
+        color = button_colors.color,
         action = function()
             remoteapi.sendControl("next")
         end
@@ -400,7 +402,7 @@ local event_handlers = {
             if value.color then
                 paintutils.drawFilledBox(value.x1, value.y1, value.x2, value.y2, value.color)
             else
-                paintutils.drawFilledBox(value.x1, value.y1, value.x2, value.y2, color_scheme_map[button_colors.color])
+                paintutils.drawFilledBox(value.x1, value.y1, value.x2, value.y2, button_colors.color)
             end
             local displayText = value.content
             if value.text_direction and value.text_direction == "vertical" then
@@ -428,7 +430,7 @@ local event_handlers = {
                 paintutils.drawFilledBox(value.x1, value.y1, value.x2, value.y2, value.color)
             else
                 paintutils.drawFilledBox(value.x1, value.y1, value.x2, value.y2,
-                color_scheme_map[button_colors.hover_color])
+                button_colors.hover_color)
             end
             local displayText = value.content
             if value.text_direction and value.text_direction == "vertical" then
@@ -456,10 +458,10 @@ local event_handlers = {
         if button == 1 then
             if x >= search_bar.x1 and x <= search_bar.x2 and y >= search_bar.y1 and y <= search_bar.y2 then
                 focus_search = true
-                search_bar.color = color_scheme_map[button_colors.click_color]
+                search_bar.color = button_colors.click_color
             else
                 focus_search = false
-                search_bar.color = color_scheme_map[button_colors.hover_color]
+                search_bar.color = button_colors.hover_color
             end
             for _, button in pairs(buttons) do
                 if x >= button.x1 and x <= button.x2 and y >= button.y1 and y <= button.y2 then

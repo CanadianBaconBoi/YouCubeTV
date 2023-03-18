@@ -62,30 +62,30 @@ function table.contains(table, element)
     return false
 end
 
-local function try_convert(input, output_type)
-    local conversion_methods = {
-        number = function (input)
-            return tonumber(input)
-        end,
-        string = function (input)
-            return tostring(input)
-        end,
-        boolean = function (input)
-            if type(input) == "number" then
-                return input ~= 0
-            elseif type(input) == "string" then
-                if input == "true" or input == "1" then
-                    return true
-                elseif input == "false" or input == "0" then
-                    return false
-                else
-                    error("'"..input.."' is not a valid boolean value")
-                end
+local conversion_methods = {
+    number = function (input)
+        return tonumber(input)
+    end,
+    string = function (input)
+        return tostring(input)
+    end,
+    boolean = function (input)
+        if type(input) == "number" then
+            return input ~= 0
+        elseif type(input) == "string" then
+            if input == "true" or input == "1" then
+                return true
+            elseif input == "false" or input == "0" then
+                return false
             else
-                error("Type '"..type(input).."' cannot be converted to 'boolean'")
+                error("'"..input.."' is not a valid boolean value")
             end
+        else
+            error("Type '"..type(input).."' cannot be converted to 'boolean'")
         end
-    }
+    end
+}
+local function try_convert(input, output_type)
     if output_type == "nil" then
         return nil
     elseif conversion_methods[output_type] then
@@ -95,22 +95,22 @@ local function try_convert(input, output_type)
     end
 end
 
+local formatter_methods = {
+    number = function (input)
+        return tostring(input)
+    end,
+    string = function (input)
+        return "\""..input.."\""
+    end,
+    boolean = function (input)
+        if input then
+            return "true"
+        else
+            return "false"
+        end
+    end,
+}
 local function format_value(input)
-    local formatter_methods = {
-        number = function (input)
-            return tostring(input)
-        end,
-        string = function (input)
-            return "\""..input.."\""
-        end,
-        boolean = function (input)
-            if input then
-                return "true"
-            else
-                return "false"
-            end
-        end,
-    }
     if type(input) == "nil" then
         return nil
     elseif formatter_methods[type(input)] then

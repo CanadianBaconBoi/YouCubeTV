@@ -47,15 +47,14 @@ end
 
 function Packet:send (channel, replyChannel)
     if type(self.protocol == "string") then
-        if type(self.payload) == "table"
-        or (type(self.payload) == "table" and type(self.payload.message) == "string") then
+        if type(self.payload) == "table" and type(self.payload.message) == "string" then
             modem.transmit(channel, replyChannel, self)
         end
     end
 end
 
 local function connectionWatchdog()
-    local event, side, channel, replyChannel, message, distance
+    local channel, message
     local pingTimer
     while true do
         pingTimer = os.startTimer(1)
@@ -63,12 +62,10 @@ local function connectionWatchdog()
             function ()
                 modem.transmit(modem_channels.c2s, modem_channels.s2c, {protocol = "ping", payload = {message = "ping", data = 1}})
                 while true do
-                    event, side, channel, replyChannel, message, distance = os.pullEvent("modem_message")
+                    _, _, channel, _, message, _ = os.pullEvent("modem_message")
                     if message and message.protocol and message.protocol == "ping" and channel == modem_channels.s2c then
                         established = true
                         break
-                    else
-                        os.queueEvent(event, side, channel, replyChannel, message, distance)
                     end
                 end
             end,
