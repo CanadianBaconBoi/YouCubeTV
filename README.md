@@ -1,3 +1,5 @@
+## This repo is archived in favour of a modern alternative (to be released soon)
+
 # [YouCube](https://youcube.madefor.cc/) TV for [CC:Tweaked](https://tweaked.cc/t)
 
 This is a television in Minecraft based on the [YouCube](https://github.com/CC-Youcube/) project. It is very similar to the reference client built into YouCube however instead of acting as a CLI and displaying in the current terminal, it displays to an external display and uses a Wireless Pocket Computer as a remote in order to play content.
